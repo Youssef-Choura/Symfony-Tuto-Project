@@ -1,17 +1,10 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>{{ firstname }} {{ name }}</title>
-</head>
-<body>
-<div>
+{% extends 'template.html.twig' %}
+{% block title1 %}
+    {{ firstname }} {{ name }}
+{% endblock %}
+
+{% block body %}
     <h1>You are {{ firstname }} {{ name }} ! </h1>
     <p>Bonjour PAPI </p>
-</div>
-
-</body>
-</html>
+    mon url absolute est : {{ url('app_first') }}
+{% endblock %}

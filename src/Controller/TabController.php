@@ -12,7 +12,7 @@ class TabController extends AbstractController
     /**
      * @throws Exception
      */
-    #[Route('/tab/{nb?5}', name: 'app_tab')]
+    #[Route('/tab/{nb<\d+>?5}', name: 'tab')]
     public function index($nb): Response
     {
         $notes = [];
@@ -21,6 +21,18 @@ class TabController extends AbstractController
         }
         return $this->render('tab/index.html.twig', [
             'notes' => $notes,
+        ]);
+    }
+    #[Route('/tab/users', name: 'users')]
+    public function users(): Response
+    {
+        $users = [
+            ['firstname' => 'youssef', 'name' => 'choura', 'age' => 39],
+            ['firstname' => 'taha', 'name' => 'choura', 'age' => 3],
+            ['firstname' => 'ahmed', 'name' => 'choura', 'age' => 59]
+        ];
+        return $this->render('tab/users.html.twig',[
+            'users' => $users
         ]);
     }
 }

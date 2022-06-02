@@ -11,6 +11,15 @@ use Symfony\Component\Routing\Annotation\Route;
 
 class FirstController extends AbstractController
 {
+
+
+    #[Route('/template', name: 'template')]
+    public function template(): Response
+    {
+        return $this->render('template.html.twig');
+    }
+
+
     /**
      * @return Response
      * @param $var
@@ -32,10 +41,8 @@ class FirstController extends AbstractController
             ]);
     }
 
-    /**
-     * @throws Exception
-     */
-    #[Route('/sayHello/{name}/{firstname}', name: 'say_hello')]
+
+    //#[Route('/sayHello/{name}/{firstname}', name: 'say_hello')]
     public function sayHello(Request $request,$name,$firstname): Response
     {
         //dd($request);
