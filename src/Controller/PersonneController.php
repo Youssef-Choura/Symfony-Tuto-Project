@@ -3,15 +3,31 @@
 namespace App\Controller;
 
 use App\Entity\Personne;
+use App\Form\PersonneType;
+use App\Services\PdfService;
+use App\Services\Helpers;
+use App\Services\MailerService;
+use App\Services\UploaderService;
 use Doctrine\Persistence\ManagerRegistry;
+use Psr\Log\LoggerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\String\Slugger\SluggerInterface;
 
-#[Route("/personne")]
+#[Route("/personne"), isGranted("ROLE_USER")]
 class PersonneController extends AbstractController
 {
+    public function __construct(LoggerInterface $logger, Helpers $helpers)
+    {
+
+    }
+
     /**
      * @Route("/", name="personne_list")
      */
@@ -26,7 +42,8 @@ class PersonneController extends AbstractController
     }
 
     /**
-     * @Route("/All/{page?1}/{nb?12}", name="personne_list_All")
+     * @Route("/All/{page?1}/{nb?12}", name="personne_list_All"),
+     * @IsGranted("ROLE_USER")
      */
     public function indexAll(ManagerRegistry $managerRegistry, $page, $nb): Response
     {
@@ -55,26 +72,94 @@ class PersonneController extends AbstractController
         ]);
     }
 
-    #[Route('/add/{name}/{firstname}/{age}', name: 'app_personne_add')]
-    public function addPersonne(ManagerRegistry $managerRegistry, $name, $firstname, $age): Response
+    /**
+     * @throws TransportExceptionInterface
+     */
+    #[Route('/add', name: 'app_personne_add')]
+    public function addPersonne(ManagerRegistry $managerRegistry, Request $request, UploaderService $uploaderService, MailerService $mailerService): Response
     {
-
+        $this->denyAccessUnlessGranted('ROLE_ADMIN', null, 'Vous n\'avez pas accès à cette page');
         $personne = new Personne();
-        $personne->setName($name);
-        $personne->setFirstname($firstname);
-        $personne->setAge($age);
+        $form = $this->createForm(PersonneType::class, $personne);
+        $form->remove('createdAt');
+        $form->remove('updatedAt');
+        //The form is going to handle the request
+        $form->handleRequest($request);
+        //Form submitted --> Add in database + redirect to list + message
+        if ($form->isSubmitted() && $form->isValid()) {
+            $personne = $form->getData();
+            $entityManager = $managerRegistry->getManager();
+            $entityManager->persist($personne);
+            $image = $form->get('image')->getData();
 
-        $manager = $managerRegistry->getManager();
-        $manager->persist($personne);
-        $manager->flush();
+            if ($image) {
+                $directory = $this->getParameter('personne_directory');
+                $personne->setImage($uploaderService->uploadFile($image, $directory));
+            }
+            $entityManager->flush();
+            $mailMessage = $personne->getFirstname() . ' ' . $personne->getLastname() . ' a été ajouté';
 
-        $this->addFlash('success', 'Personne a éte ajoutée');
-        return $this->render('personne/details.html.twig', [
-            'personne' => $personne,
+            $this->addFlash('success', 'Personne ajoutée');
+            $personne->setCreatedBy($this->getUser());
+            $mailerService->sendEmail(text: $mailMessage);
+
+            return $this->redirectToRoute('personne_list_All');
+        }
+        return $this->render('personne/add-person.html.twig', [
+            'form' => $form->createView(),
         ]);
     }
 
-    #[Route('/delete/{id<\d+>}', name: 'app_personne_delete')]
+    /**
+     * @throws TransportExceptionInterface
+     */
+    #[Route('/edit/{id?}', name: 'app_personne_edit')]
+    public function editPersonne(ManagerRegistry $managerRegistry, Request $request, SluggerInterface $slugger, MailerService $mailerService, Personne $personne = null): Response
+    {
+
+        $this->denyAccessUnlessGranted('ROLE_ADMIN', null, 'Vous n\'avez pas accès à cette page');
+        $form = $this->createForm(PersonneType::class, $personne);
+        $form->remove('createdAt');
+        $form->remove('updatedAt');
+        //The form is going to handle the request
+        $form->handleRequest($request);
+        //Form submitted --> Add in database + redirect to list + message
+        if ($form->isSubmitted() && $form->isValid()) {
+            $personne = $form->getData();
+
+            $image = $form->get('image')->getData();
+
+            if ($image) {
+                $originalImageName = pathinfo($image->getClientOriginalName(), PATHINFO_FILENAME);
+                $safeFilename = $slugger->slug($originalImageName);
+                $newImageName = $safeFilename . '-' . uniqid('', true) . '.' . $image->guessExtension();
+
+                try {
+                    $image->move(
+                        $this->getParameter('personne_directory'),
+                        $newImageName
+                    );
+                } catch (FileException $e) {
+                    // ... handle exception if something happens during file upload
+                }
+                $personne->setImage($newImageName);
+            }
+
+            $entityManager = $managerRegistry->getManager();
+            $entityManager->persist($personne);
+            $entityManager->flush();
+            $entityManager->flush();
+
+            $mailMessage = $personne->getFirstname() . ' ' . $personne->getLastname() . ' a été modifié';
+            $this->addFlash('success', 'Personne modifiée');
+            $mailerService->sendEmail(text: $mailMessage);
+            return $this->redirectToRoute('personne_list_All');
+        }
+
+        return $this->render('personne/add-person.html.twig', ['form' => $form->createView()]);
+    }
+
+    #[Route('/delete/{id<\d+>}', name: 'app_personne_delete'), IsGranted(['ROLE_ADMIN', 'ROLE_USER'])]
     public function deletePersonne(ManagerRegistry $managerRegistry, Personne $personne = null): RedirectResponse
     {
         if (!$personne) {
@@ -89,12 +174,12 @@ class PersonneController extends AbstractController
     }
 
     #[Route('/update/{id<\d+>}/{name}/{firstname}/{age}', name: 'app_personne_update')]
-    public function updatePersonne(Personne $personne = null, ManagerRegistry $managerRegistry, $name, $firstname, $age): RedirectResponse
+    public function updatePersonne(ManagerRegistry $managerRegistry, $name, $firstname, $age, Personne $personne = null): RedirectResponse
     {
         if (!$personne) {
             $this->addFlash('danger', 'Personne non trouvée');
         } else {
-            $personne->setName($name);
+            $personne->setLastname($name);
             $personne->setFirstname($firstname);
             $personne->setAge($age);
 
@@ -127,5 +212,12 @@ class PersonneController extends AbstractController
             'ageMin' => $ageMin,
             'ageMax' => $ageMax
         ]);
+    }
+
+    #[Route('/pdf/{id}', name: 'personne.pdf')]
+    public function generatePdfPersonne(PdfService $pdf, Personne $personne = null): void
+    {
+        $html = $this->render('personne/details.html.twig', ['personne' => $personne]);
+        $pdf->generatePdf($html);
     }
 }

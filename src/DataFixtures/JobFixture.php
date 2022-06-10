@@ -14,12 +14,25 @@ class JobFixture extends Fixture
 {
     public function load(ObjectManager $manager): void
     {
-        $faker = Factory::create('fr_FR');
-        for ($i = 0; $i < 100; $i++) {
-           $job = new Job();
-            $faker->addProvider(new BuzzwordJobProvider($faker));
-            $job->setDesignation($faker->jobTitle);
-           $manager->persist($job);
+        $data = [
+            "Data scientist",
+            "Statisticien",
+            "Analyste cyber-sécurité",
+            "Médecin ORL",
+            "Échographiste",
+            "Mathématicien",
+            "Ingénieur logiciel",
+            "Analyste informatique",
+            "Pathologiste du discours / langage",
+            "Actuaire",
+            "Ergothérapeute",
+            "Directeur des Ressources Humaines",
+            "Hygiéniste dentaire "
+        ];
+        foreach ($data as $iValue) {
+            $job = new Job();
+            $job->setDesignation($iValue);
+            $manager->persist($job);
         }
         $manager->flush();
     }

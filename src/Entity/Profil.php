@@ -74,4 +74,8 @@ class Profil
 
         return $this;
     }
+    public function __toString()
+    {
+        return $this->rs.' '.$this->url;
+    }
 }

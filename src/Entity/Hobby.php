@@ -34,4 +34,5 @@ class Hobby
 
         return $this;
     }
+
 }

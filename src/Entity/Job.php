@@ -65,13 +65,16 @@ class Job
 
     public function removePersonne(Personne $personne): self
     {
-        if ($this->personnes->removeElement($personne)) {
-            // set the owning side to null (unless already changed)
-            if ($personne->getJob() === $this) {
-                $personne->setJob(null);
-            }
+        // set the owning side to null (unless already changed)
+        if ($this->personnes->removeElement($personne) && $personne->getJob() === $this) {
+            $personne->setJob(null);
         }
 
         return $this;
+    }
+
+    public function __toString(): string
+    {
+        return $this->designation;
     }
 }

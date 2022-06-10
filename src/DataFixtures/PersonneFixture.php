@@ -17,7 +17,7 @@ class PersonneFixture extends Fixture
         for ($i = 0; $i < 100; $i++) {
             $personne = new Personne();
             $personne->setFirstname($faker->firstName);
-            $personne->setName($faker->lastName);
+            $personne->setLastname($faker->lastName);
             $personne->setAge($faker->numberBetween(18, 60));
 
             $manager->persist($personne);

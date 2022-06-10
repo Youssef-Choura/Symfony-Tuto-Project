@@ -7,6 +7,7 @@ use App\Traits\TimeStampTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: PersonneRepository::class), ORM\HasLifecycleCallbacks]
 class Personne
@@ -17,14 +18,14 @@ class Personne
     #[ORM\Column(type: 'integer')]
     private ?int $id;
 
-    #[ORM\Column(type: 'string', length: 30)]
+    #[ORM\Column(type: 'string', length: 30), Assert\NotBlank(message: "veuillez remplir ce champ"), Assert\Length(min: 3, max: 30,minMessage: "le nom doit faire au moins 3 caractères", maxMessage: "le nom doit faire au plus 30 caractères")]
     private ?string $firstname;
 
     #[ORM\Column(type: 'smallint')]
     private ?int $age;
 
     #[ORM\Column(type: 'string', length: 50)]
-    private ?string $name;
+    private ?string $lastname;
 
     #[ORM\OneToOne(inversedBy: 'personne', targetEntity: Profil::class, cascade: ['persist', 'remove'])]
     private ?Profil $profil;
@@ -34,6 +35,12 @@ class Personne
 
     #[ORM\ManyToOne(targetEntity: Job::class, inversedBy: 'personnes')]
     private ?Job $job;
+
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $image;
+
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'personnes')]
+    private $createdBy;
 
     public function __construct()
     {
@@ -69,14 +76,14 @@ class Personne
         return $this;
     }
 
-    public function getName(): ?string
+    public function getLastname(): ?string
     {
-        return $this->name;
+        return $this->lastname;
     }
 
-    public function setName(string $name): self
+    public function setLastname(string $lastname): self
     {
-        $this->name = $name;
+        $this->lastname = $lastname;
 
         return $this;
     }
@@ -125,6 +132,30 @@ class Personne
     public function setJob(?Job $job): self
     {
         $this->job = $job;
+
+        return $this;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(?string $image): self
+    {
+        $this->image = $image;
+
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): self
+    {
+        $this->createdBy = $createdBy;
 
         return $this;
     }

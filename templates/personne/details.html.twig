@@ -4,14 +4,18 @@
 {{ dump(personne) }}
 
 <div class="alert alert-success">
-    {{ personne.firstname }} {{ personne.name }} a été créé avec succès !
-    {{ personne.age }} ans
+    <p>{{ personne.firstname }} {{ personne.lastname }} a été créé avec succès !</p>
+    <p>{{ personne.firstname }} {{ personne.lastname }} a {{ personne.age }} ans</p>
+    {% if app.user %}
+        <p>CreatedBy : {{ app.user.email }}</p>
+    {% endif %}
+
 
 </div>
 
 {% endblock %}
 
 {% block title1 %}
-    {{ personne.firstname }} {{ personne.name }}
+    {{ personne.firstname }} {{ personne.lastname }}
 {% endblock %}
 
